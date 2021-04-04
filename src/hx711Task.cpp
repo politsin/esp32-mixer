@@ -1,6 +1,7 @@
 #include "hx711Task.h"
 #include "hx711.h"
 #include "main.h"
+#include "mcp23017Task.h"
 #include <Arduino.h>
 #include <i2c.h>
 
@@ -15,6 +16,7 @@ int32_t scale(uint8_t count, hx711_t &dev);
 int32_t inithx711(hx711_t &dev);
 int32_t runMiddleArifmOptim(int32_t newVal);
 
+// TaskHandle_t mcp23017;
 void hx711Task(void *pvParam) {
   hx711_t dev = {
       .dout = HX_SDA,
@@ -25,7 +27,12 @@ void hx711Task(void *pvParam) {
   uint8_t count = 1;
   while (true) {
     int32_t result = scale(count, dev) - tare;
-    printf("%d\n", -result / 205);
+    uint32_t scale = -result / 205;
+    if (xTaskNotify(mcp23017, scale, eSetValueWithOverwrite) == pdPASS) {
+      /* The task's notification value was updated. */
+    } else {
+      printf("SCALE: %d\n", scale);
+    }
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
@@ -57,7 +64,7 @@ int32_t inithx711(hx711_t &dev) {
     printf("Could not initialize HX711: %d (%s)\n", r, esp_err_to_name(r));
     vTaskDelay(500 / portTICK_PERIOD_MS);
   }
-  uint8_t count = 128;
+  uint8_t count = 32;
   int32_t tare = scale(count, dev);
   return tare;
 }

@@ -5,6 +5,32 @@ extern TaskHandle_t mcp23017;
 void mcp23017Task(void *pvParam);
 
 /**
+ * Pumps.
+ */
+typedef enum {
+  PUMP_STOP,
+  PUMP_START,
+  PUMP_REVERCE,
+} pump_mode_t;
+typedef enum {
+  PUMP1,
+  PUMP2,
+  PUMP3,
+  PUMP4,
+  PUMP5,
+  PUMP6,
+  PUMP7,
+  PUMP8,
+} pump_t;
+
+struct PumpState {
+  pump_t pump;
+  pump_mode_t mode;
+  uint32_t task;
+  uint32_t result;
+};
+
+/**
  * GPIO mode
  */
 typedef enum {

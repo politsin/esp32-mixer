@@ -27,7 +27,7 @@ void setup() {
   ESP_LOGI(TAG, "setup");
   printf("setup %d\n", 1);
   xTaskCreate(hx711Task, "hx711", 1024 * 16, NULL, 1, &hx711);
-  xTaskCreate(mcp23017Task, "mcp23017", 1024 * 64, NULL, 1, &mcp23017);
+  xTaskCreate(mcp23017Task, "mcp23017", 1024 * 32, NULL, 1, &mcp23017);
 }
 
 void loop() {
