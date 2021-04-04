@@ -28,9 +28,8 @@ void hx711Task(void *pvParam) {
   while (true) {
     int32_t result = scale(count, dev) - tare;
     uint32_t scale = -result / 205;
-    if (xTaskNotify(mcp23017, scale, eSetValueWithOverwrite) == pdPASS) {
-      /* The task's notification value was updated. */
-    } else {
+    if (xTaskNotify(mcp23017, scale, eSetValueWithOverwrite) != pdPASS) {
+      /* The task's notification value was faild. */
       printf("SCALE: %d\n", scale);
     }
     vTaskDelay(100 / portTICK_PERIOD_MS);

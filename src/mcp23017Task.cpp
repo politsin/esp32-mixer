@@ -17,6 +17,7 @@ PumpState pumps[8] = {
 void mcp23017Task(void *pvParam) {
   mcp23x17_mode_output();
   uint8_t size = sizeof(pumps) / sizeof(pumps[0]);
+  uint32_t scale = 0;
   while (true) {
     for (uint8_t i = 0; i < size; i++) {
       PumpState pump = pumps[i];
@@ -24,23 +25,19 @@ void mcp23017Task(void *pvParam) {
       // Start:
       pump.mode = PUMP_START;
       mcp23x17_set_pump(pump);
-      uint32_t scale = 0;
       while (pump.result < pump.task) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        if (xTaskNotifyWait(0, 0x00, &scale, 100 / portTICK_PERIOD_MS) == pdTRUE){
+        if (xTaskNotifyWait(0, 0x00, &scale, 100 / portTICK_PERIOD_MS) ==
+            pdTRUE) {
           pump.result = scale;
-        }
-        else {
-          // printf("scaleFail = %d\n", scale);
         }
         printf("p%d %d << %d\n", i + 1, pump.task, pump.result);
       }
-      pump.mode = PUMP_STOP;
-      mcp23x17_set_pump(pump);
       // Reverse:
       pump.mode = PUMP_REVERCE;
       mcp23x17_set_pump(pump);
       vTaskDelay(1000 / portTICK_PERIOD_MS);
+      // Stop:
       pump.mode = PUMP_STOP;
       mcp23x17_set_pump(pump);
     }
