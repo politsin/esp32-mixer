@@ -28,7 +28,8 @@ void mcp23017Task(void *pvParam) {
       while (pump.result < pump.task) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
         if (xTaskNotifyWait(0, 0x00, &scale, 100 / portTICK_PERIOD_MS) ==
-            pdTRUE) {
+                pdTRUE &&
+            (int32_t)scale > 0) {
           pump.result = scale;
         }
         printf("p%d %d << %d\n", i + 1, pump.task, pump.result);
