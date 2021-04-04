@@ -9,7 +9,7 @@ void mcp23x17_mode_output();
 void mcp23x17_set_pump(PumpState pump);
 
 PumpState pumps[8] = {
-    PumpState{PUMP1, PUMP_STOP, 1278}, PumpState{PUMP2, PUMP_STOP, 15080},
+    PumpState{PUMP1, PUMP_STOP, 12780}, PumpState{PUMP2, PUMP_STOP, 15080},
     PumpState{PUMP3, PUMP_STOP, 5220}, PumpState{PUMP4, PUMP_STOP, 8460},
     PumpState{PUMP5, PUMP_STOP, 8010}, PumpState{PUMP6, PUMP_STOP, 14310},
     PumpState{PUMP7, PUMP_STOP, 7550}, PumpState{PUMP8, PUMP_STOP, 1220},
