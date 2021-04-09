@@ -26,6 +26,7 @@ typedef enum {
 struct PumpState {
   pump_t pump;
   pump_mode_t mode;
+  bool reverse;
   uint32_t task;
   uint32_t result;
 };

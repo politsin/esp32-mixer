@@ -9,45 +9,99 @@ void mcp23x17_mode_output();
 void mcp23x17_set_pump(PumpState pump);
 
 PumpState pumps[8] = {
-    PumpState{PUMP1, PUMP_STOP, 12780}, PumpState{PUMP2, PUMP_STOP, 15080},
-    PumpState{PUMP3, PUMP_STOP, 5220}, PumpState{PUMP4, PUMP_STOP, 8460},
-    PumpState{PUMP5, PUMP_STOP, 8010}, PumpState{PUMP6, PUMP_STOP, 14310},
-    PumpState{PUMP7, PUMP_STOP, 7550}, PumpState{PUMP8, PUMP_STOP, 1220},
+    PumpState{PUMP1, PUMP_STOP, 0, 0},
+    PumpState{PUMP2, PUMP_STOP, 0, 12780},
+    PumpState{PUMP3, PUMP_STOP, 1, 15080},
+    PumpState{PUMP4, PUMP_STOP, 1, 5220},
+    PumpState{PUMP5, PUMP_STOP, 1, 8460},
+    PumpState{PUMP6, PUMP_STOP, 0, 0},
+    PumpState{PUMP7, PUMP_STOP, 0, 0},
+    PumpState{PUMP8, PUMP_STOP, 0, 0},
 };
 void mcp23017Task(void *pvParam) {
   mcp23x17_mode_output();
   uint8_t size = sizeof(pumps) / sizeof(pumps[0]);
+  uint32_t tare = 0;
   uint32_t scale = 0;
-  while (true) {
-    for (uint8_t i = 0; i < size; i++) {
-      PumpState pump = pumps[i];
-      printf("pump%d = %d\n", i + 1, pump.pump);
+  TickType_t delay = 100 / portTICK_PERIOD_MS;
+  // await for scale.
+  if (xTaskNotifyWait(0, 0x00, &scale, portMAX_DELAY) == pdTRUE) {
+    tare = scale;
+  }
+  for (uint8_t i = 0; i < size; i++) {
+    PumpState pump = pumps[i];
+    printf("pump%d = %d\n", i + 1, pump.pump);
+    if (pump.task > 0) {
       // Start:
       pump.mode = PUMP_START;
       mcp23x17_set_pump(pump);
-      while (pump.result < pump.task) {
+      while (pumps[i].result < pump.task) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
-        if (xTaskNotifyWait(0, 0x00, &scale, 100 / portTICK_PERIOD_MS) ==
-                pdTRUE &&
-            (int32_t)scale > 0) {
-          pump.result = scale;
+        if (xTaskNotifyWait(0, 0x00, &scale, delay) == pdTRUE &&
+            (int32_t)scale > 0 && scale > tare) {
+          pumps[i].result = scale - tare;
         }
-        printf("p%d %d << %d\n", i + 1, pump.task, pump.result);
+        int32_t d = pump.task - pumps[i].result;
+        printf("p%d %d << %d [d = %d]\n", i + 1, pump.task, pumps[i].result, d);
+        if (d < 1000) {
+          pump.mode = PUMP_STOP;
+          mcp23x17_set_pump(pump);
+          vTaskDelay(200 / portTICK_PERIOD_MS);
+          pump.mode = PUMP_START;
+          mcp23x17_set_pump(pump);
+          vTaskDelay(20 / portTICK_PERIOD_MS);
+          pump.mode = PUMP_STOP;
+          mcp23x17_set_pump(pump);
+        }
+      }
+      if (xTaskNotifyWait(0, 0x00, &scale, portMAX_DELAY) == pdTRUE) {
+        pumps[i].result = scale - tare;
+        int32_t d = pumps[i].result - pump.task;
+        printf("p%d %d !< %d [d = %d]\n", i + 1, pump.task, pumps[i].result, d);
       }
       // Reverse:
       pump.mode = PUMP_REVERCE;
       mcp23x17_set_pump(pump);
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      vTaskDelay(6000 / portTICK_PERIOD_MS);
       // Stop:
       pump.mode = PUMP_STOP;
       mcp23x17_set_pump(pump);
+      // Scale.
+      if (xTaskNotifyWait(0, 0x00, &scale, portMAX_DELAY) == pdTRUE) {
+        pumps[i].result = scale - tare;
+        int32_t d = pumps[i].result - pump.task;
+        printf("p%d %d !< %d [d = %d]\n", i + 1, pump.task, pumps[i].result, d);
+        tare = scale;
+      }
+      vTaskDelay(500 / portTICK_PERIOD_MS);
     }
+  }
+  while (true) {
+    uint32_t stakan = 5000;
+    uint32_t sum_task = 0;
+    uint32_t sum_result = 0;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    if (xTaskNotifyWait(0, 0x00, &scale, delay) == pdTRUE &&
+        (int32_t)scale > 0) {
+      for (uint8_t i = 0; i < size; i++) {
+        PumpState pump = pumps[i];
+        sum_task += pump.task;
+        sum_result += pump.result;
+        int32_t d = pump.result - pump.task;
+        printf("p%d %d << %d [d = %d]\n", i + 1, pump.task, pump.result, d);
+      }
+      int32_t d2 = sum_result - sum_task;
+      printf("TASK:%d \n", sum_task);
+      printf("RESULT:%d, SUM:%d DELTA = %d\n", scale, sum_result, d2);
+      printf("TARE-TASK:%d TARE-RESULT:%d\n", sum_task + stakan,
+             sum_result + stakan);
+    }
+    vTaskDelay(7000 / portTICK_PERIOD_MS);
   }
 }
 
 void mcp23x17_set_pump(PumpState pump) {
-  printf("set pin %d %d\n", pump.pump, pump.mode);
+  // printf("set pin %d %d\n", pump.pump, pump.mode);
   uint8_t off = 0b00000000;
   uint8_t setup = 0b00000001 << pump.pump;
   if (pump.mode == PUMP_STOP) {
@@ -55,12 +109,22 @@ void mcp23x17_set_pump(PumpState pump) {
     master_write_cmd(ADDR_MCP23017, REG_GPIOB, off);
   }
   if (pump.mode == PUMP_START) {
-    master_write_cmd(ADDR_MCP23017, REG_GPIOA, off);
-    master_write_cmd(ADDR_MCP23017, REG_GPIOB, setup);
+    if (!pump.reverse) {
+      master_write_cmd(ADDR_MCP23017, REG_GPIOA, setup);
+      master_write_cmd(ADDR_MCP23017, REG_GPIOB, off);
+    } else {
+      master_write_cmd(ADDR_MCP23017, REG_GPIOA, off);
+      master_write_cmd(ADDR_MCP23017, REG_GPIOB, setup);
+    }
   }
   if (pump.mode == PUMP_REVERCE) {
-    master_write_cmd(ADDR_MCP23017, REG_GPIOA, setup);
-    master_write_cmd(ADDR_MCP23017, REG_GPIOB, off);
+    if (!pump.reverse) {
+      master_write_cmd(ADDR_MCP23017, REG_GPIOA, off);
+      master_write_cmd(ADDR_MCP23017, REG_GPIOB, setup);
+    } else {
+      master_write_cmd(ADDR_MCP23017, REG_GPIOA, setup);
+      master_write_cmd(ADDR_MCP23017, REG_GPIOB, off);
+    }
   }
 }
 

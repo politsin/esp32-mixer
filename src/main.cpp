@@ -33,5 +33,5 @@ void setup() {
 void loop() {
   uint16_t delay = 15.5; // sec.
   vTaskDelay(delay * 1000 / portTICK_PERIOD_MS);
-  printf("Loop %ds \n", delay);
+  // printf("Loop %ds \n", delay);
 }

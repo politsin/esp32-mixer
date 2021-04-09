@@ -8,7 +8,7 @@
 #define HX_SDA GPIO_NUM_26
 #define HX_SCK GPIO_NUM_27
 // scale_calibration, side A and B
-const uint8_t NUM_READ = 16;
+const uint8_t NUM_READ = 8;
 float scale_calibration_A = 2030;
 float scale_calibration_B = 2030;
 
@@ -32,7 +32,7 @@ void hx711Task(void *pvParam) {
       /* The task's notification value was faild. */
       printf("SCALE: %d\n", scale);
     }
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
 
