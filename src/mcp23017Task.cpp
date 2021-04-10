@@ -10,10 +10,10 @@ void mcp23x17_set_pump(PumpState pump);
 
 PumpState pumps[8] = {
     PumpState{PUMP1, PUMP_STOP, 0, 0},
-    PumpState{PUMP2, PUMP_STOP, 0, 12780},
-    PumpState{PUMP3, PUMP_STOP, 1, 15080},
-    PumpState{PUMP4, PUMP_STOP, 1, 5220},
-    PumpState{PUMP5, PUMP_STOP, 1, 8460},
+    PumpState{PUMP2, PUMP_STOP, 0, 700},
+    PumpState{PUMP3, PUMP_STOP, 1, 1300},
+    PumpState{PUMP4, PUMP_STOP, 1, 0},
+    PumpState{PUMP5, PUMP_STOP, 1, 0},
     PumpState{PUMP6, PUMP_STOP, 0, 0},
     PumpState{PUMP7, PUMP_STOP, 0, 0},
     PumpState{PUMP8, PUMP_STOP, 0, 0},
@@ -43,13 +43,13 @@ void mcp23017Task(void *pvParam) {
         }
         int32_t d = pump.task - pumps[i].result;
         printf("p%d %d << %d [d = %d]\n", i + 1, pump.task, pumps[i].result, d);
-        if (d < 1000) {
+        if (d < 500) {
           pump.mode = PUMP_STOP;
           mcp23x17_set_pump(pump);
           vTaskDelay(200 / portTICK_PERIOD_MS);
           pump.mode = PUMP_START;
           mcp23x17_set_pump(pump);
-          vTaskDelay(20 / portTICK_PERIOD_MS);
+          vTaskDelay(15 / portTICK_PERIOD_MS);
           pump.mode = PUMP_STOP;
           mcp23x17_set_pump(pump);
         }
