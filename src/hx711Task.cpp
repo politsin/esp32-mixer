@@ -27,8 +27,9 @@ void hx711Task(void *pvParam) {
   uint8_t count = 1;
   while (true) {
     int32_t result = scale(count, dev) - tare;
-    uint32_t scale = -result * 100 / 205.7;
-    if (xTaskNotify(mcp23017, scale, eSetValueWithOverwrite) != pdPASS) {
+    int32_t scale = -result * 100 / 204;
+    if (xTaskNotify(mcp23017, (uint32_t)scale, eSetValueWithOverwrite) !=
+        pdPASS) {
       /* The task's notification value was faild. */
       printf("SCALE: %d\n", scale);
     }
